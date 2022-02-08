@@ -1,6 +1,7 @@
+# Created by: Patrick Tracanelli <eksffa@freebsdbrasil.com.br>
+
 PORTNAME=	suricata
-DISTVERSION=	6.0.4
-PORTREVISION=	1
+DISTVERSION=	5.0.8
 CATEGORIES=	security
 MASTER_SITES=	https://www.openinfosecfoundation.org/download/
 
@@ -12,49 +13,41 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 
 BUILD_DEPENDS=	rustc:lang/${RUST_DEFAULT}
 LIB_DEPENDS=	libjansson.so:devel/jansson \
-		liblz4.so:archivers/liblz4 \
-		libnet.so:net/libnet \
 		libpcre.so:devel/pcre \
+		libnet.so:net/libnet \
+		liblz4.so:archivers/liblz4 \
 		libyaml.so:textproc/libyaml
 
-USES=		autoreconf cpe gmake iconv:translit libtool localbase pathfix \
-		pkgconfig
+USES=		autoreconf cpe gmake iconv:translit libtool localbase \
+		pathfix pkgconfig
 
 CPE_VENDOR=	openinfosecfoundation
 
 USE_LDCONFIG=	yes
 USE_RC_SUBR=	${PORTNAME}
 
-GNU_CONFIGURE=		yes
-CONFIGURE_ARGS+=	--disable-gccmarch-native \
-			--enable-bundled-htp \
-			--enable-gccprotect
-MAKE_ENV=		RUSTFLAGS="${RUSTFLAGS} -C linker=${CC:Q} ${LDFLAGS:C/.+/-C link-arg=&/}"
+GNU_CONFIGURE=	yes
+CONFIGURE_ARGS+=--enable-gccprotect \
+		--enable-bundled-htp \
+	        --disable-gccmarch-native
 
-INSTALL_TARGET=	install-strip
-TEST_TARGET=	check
+INSTALL_TARGET=		install-strip
+TEST_TARGET=		check
 
 CONFLICTS_INSTALL=	libhtp suricata-devel
 
 SUB_FILES=	pkg-message
 PLIST_SUB=	PORTVERSION=${DISTVERSION:C/-/_/g}
 
-OPTIONS_DEFINE=		GEOIP IPFW NETMAP NSS PORTS_PCAP PRELUDE PYTHON REDIS \
-			TESTS
+OPTIONS_DEFINE=		GEOIP IPFW NETMAP NSS PORTS_PCAP PRELUDE \
+			PYTHON REDIS TESTS
 OPTIONS_DEFINE_amd64=	HYPERSCAN
 OPTIONS_DEFAULT=	IPFW NETMAP PYTHON
 
 OPTIONS_RADIO=		SCRIPTS
 OPTIONS_RADIO_SCRIPTS=	LUA LUAJIT
 
-OPTIONS_SUB=	yes
-
-PRELUDE_BROKEN=	Compilation broken, see https://redmine.openinfosecfoundation.org/issues/4065
-
-# Opnsense addition
-OPTIONS_DEFINE+=		NETMAP_V14
-NETMAP_V14_DESC=		Netmap V14 API, see https://github.com/luigirizzo/netmap/blob/master/libnetmap/libnetmap.h
-NETMAP_V14_EXTRA_PATCHES+=	${FILESDIR}/extra-patch-pr-6401
+OPTIONS_SUB=		yes
 
 GEOIP_DESC=		GeoIP support
 HYPERSCAN_DESC=		Hyperscan support
@@ -70,33 +63,32 @@ REDIS_DESC=		Redis output support
 SCRIPTS_DESC=		Scripting
 TESTS_DESC=		Unit tests in suricata binary
 
-GEOIP_LIB_DEPENDS=	libmaxminddb.so:net/libmaxminddb
-GEOIP_CONFIGURE_ON=	--enable-geoip
+GEOIP_LIB_DEPENDS=		libmaxminddb.so:net/libmaxminddb
+GEOIP_CONFIGURE_ON=		--enable-geoip
 
-HYPERSCAN_LIB_DEPENDS=	libhs.so:devel/hyperscan
+HYPERSCAN_LIB_DEPENDS=		libhs.so:devel/hyperscan
 
-IPFW_CONFIGURE_ON=	--enable-ipfw
+IPFW_CONFIGURE_ON=		--enable-ipfw
 
-LUAJIT_LIB_DEPENDS=	libluajit-5.1.so:lang/luajit-openresty
-LUAJIT_CONFIGURE_ON=	--enable-luajit
+LUAJIT_LIB_DEPENDS=		libluajit-5.1.so:lang/luajit
+LUAJIT_CONFIGURE_ON=		--enable-luajit
 
-LUA_USES=		lua:51
-LUA_CONFIGURE_ON=	--enable-lua
+LUA_USES=			lua:51
+LUA_CONFIGURE_ON=		--enable-lua
 
 NETMAP_CONFIGURE_ENABLE=	netmap
 
-NSS_LIB_DEPENDS=	libnspr4.so:devel/nspr \
-			libnss3.so:security/nss
-NSS_CONFIGURE_OFF=	--disable-nspr \
-			--disable-nss
+NSS_LIB_DEPENDS=		libnss3.so:security/nss \
+				libnspr4.so:devel/nspr
+NSS_CONFIGURE_OFF=		--disable-nss --disable-nspr
 
-PORTS_PCAP_LIB_DEPENDS=	libpcap.so.1:net/libpcap
+PORTS_PCAP_LIB_DEPENDS=		libpcap.so.1:net/libpcap
 
-PRELUDE_LIB_DEPENDS=		libgcrypt.so:security/libgcrypt \
+PRELUDE_LIB_DEPENDS=		libprelude.so:security/libprelude \
 				libgnutls.so:security/gnutls \
+				libgcrypt.so:security/libgcrypt \
 				libgpg-error.so:security/libgpg-error \
-				libltdl.so:devel/libltdl \
-				libprelude.so:security/libprelude
+				libltdl.so:devel/libltdl
 PRELUDE_CONFIGURE_ON=		--with-libprelude-prefix=${LOCALBASE}
 PRELUDE_CONFIGURE_ENABLE=	prelude
 
@@ -106,18 +98,14 @@ PYTHON_USES=			python
 PYTHON_USE=			PYTHON=py3kplist
 PYTHON_CONFIGURE_ENABLE=	python
 
-REDIS_LIB_DEPENDS=	libevent_pthreads.so:devel/libevent \
-			libhiredis.so:databases/hiredis
-REDIS_CONFIGURE_ON=	--enable-hiredis
-TESTS_CONFIGURE_ENABLE=	unittests
+REDIS_LIB_DEPENDS=		libhiredis.so:databases/hiredis \
+				libevent_pthreads.so:devel/libevent
+REDIS_CONFIGURE_ON=		--enable-hiredis \
+
+TESTS_CONFIGURE_ENABLE=		unittests
 
 pre-patch:
 	@${CP} ${FILESDIR}/ax_check_compile_flag.m4 ${WRKSRC}/m4
-
-post-patch:
-# Disable vendor checksums
-	@${REINPLACE_CMD} 's,"files":{[^}]*},"files":{},' \
-		${WRKSRC}/rust/vendor/*/.cargo-checksum.json
 
 post-patch-PYTHON-on:
 	@${REINPLACE_CMD} -e "/AC_PATH_PROGS.*HAVE_PYTHON/ s/python[^,]*,/${PYTHON_VERSION},/g" \
